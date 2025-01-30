@@ -57,94 +57,100 @@ export function WishlistForm() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F5F5DC] text-gray-800 flex flex-col items-center">
+    <main className="h-screen bg-[#F5F5DC] text-gray-800 flex flex-col items-center">
       {/* Main content area */}
-      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center pb-[100px] sm:pb-8">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col h-full">
         {/* Header */}
         <div className="w-full text-left py-4">
           <h2 className="text-2xl font-bold text-gray-800">nawab & Co.</h2>
         </div>
 
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-center my-16 sm:my-24"
-        >
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Elevate Your Wardrobe
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-            Join the waitlist for our exclusive clothing line and be the first
-            to experience revolutionary designs
-          </p>
-        </motion.div>
-
-        {/* Image Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-5xl mb-12">
-          {[
-            {
-              src: "/placeholder.svg?height=400&width=300",
-              alt: "Elegant suit",
-            },
-            {
-              src: "/placeholder.svg?height=400&width=300",
-              alt: "Stylish dress",
-            },
-            {
-              src: "/placeholder.svg?height=400&width=300",
-              alt: "Casual outfit",
-            },
-          ].map((img, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.2 }}
-              className="relative aspect-[3/4] rounded-lg overflow-hidden"
-            >
-              <Image
-                src={img.src || "/placeholder.svg"}
-                alt={img.alt}
-                fill
-                className="object-cover"
-              />
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Form Section */}
-        <div
-          className={`w-full ${
-            isMobile
-              ? "fixed bottom-0 left-0 p-4 bg-[#F5F5DC] border-t border-gray-200 shadow-lg"
-              : "max-w-xl mx-auto"
-          }`}
-        >
-          <form onSubmit={handleSubmit} className="flex flex-col items-center">
-            <div className="flex flex-col sm:flex-row w-full gap-2">
-              <Input
-                type="email"
-                required
-                className="flex-grow bg-white border-gray-300 text-gray-800 placeholder-gray-500"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-              <Button
-                type="submit"
-                className="w-full sm:w-auto bg-gray-800 text-white hover:bg-gray-700"
-                disabled={isLoading}
-              >
-                {isLoading ? "Submitting..." : "Join Waitlist"}
-              </Button>
-            </div>
-            <p className="text-sm text-gray-600 text-center mt-2">
-              Be the first to experience our revolutionary designs
+        {/* Content Container */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          {/* Hero Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-8"
+          >
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+              Elevate Your Wardrobe
+            </h1>
+            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+              Join the waitlist for our exclusive clothing line and be the first
+              to experience revolutionary designs
             </p>
-          </form>
+          </motion.div>
+
+          {/* Image Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-5xl mb-8">
+            {[
+              {
+                src: "/placeholder.svg?height=400&width=300",
+                alt: "Elegant suit",
+              },
+              {
+                src: "/placeholder.svg?height=400&width=300",
+                alt: "Stylish dress",
+              },
+              {
+                src: "/placeholder.svg?height=400&width=300",
+                alt: "Casual outfit",
+              },
+            ].map((img, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.2 }}
+                className="relative aspect-[3/4] rounded-lg overflow-hidden"
+              >
+                <Image
+                  src={img.src || "/placeholder.svg"}
+                  alt={img.alt}
+                  fill
+                  className="object-cover"
+                />
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Form Section */}
+          <div
+            className={`w-full ${
+              isMobile
+                ? "fixed bottom-0 left-0 p-4 bg-[#F5F5DC] border-t border-gray-200 shadow-lg"
+                : "max-w-xl"
+            }`}
+          >
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col items-center"
+            >
+              <div className="flex flex-col sm:flex-row w-full gap-2">
+                <Input
+                  type="email"
+                  required
+                  className="flex-grow bg-white border-gray-300 text-gray-800 placeholder-gray-500"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                />
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto bg-gray-800 text-white hover:bg-gray-700"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Submitting..." : "Join Waitlist"}
+                </Button>
+              </div>
+              <p className="text-sm text-gray-600 text-center mt-2">
+                Be the first to experience our revolutionary designs
+              </p>
+            </form>
+          </div>
         </div>
       </div>
 

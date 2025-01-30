@@ -108,7 +108,7 @@ export async function POST(req: Request) {
                 <!-- Hero Image Section -->
                 <div style="background-image: url('https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?q=80&w=2940&auto=format&fit=crop'); background-size: cover; background-position: center; height: 200px; position: relative;">
                   <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Welcome to Nawab & Co.</h1>
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Welcome to nawab & Co.</h1>
                   </div>
                 </div>
               </td>
@@ -127,13 +127,13 @@ export async function POST(req: Request) {
                 <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">Stay tuned for exciting updates and exclusive offers coming your way!</p>
                 <div style="text-align: center; margin-top: 40px;">
                   <p style="color: #666666; font-size: 14px; margin: 0;">With style,</p>
-                  <p style="color: #333333; font-size: 18px; font-weight: bold; margin: 5px 0;">The Nawab & Co. Team</p>
+                  <p style="color: #333333; font-size: 18px; font-weight: bold; margin: 5px 0;">The nawab & Co. Team</p>
                 </div>
               </td>
             </tr>
             <tr>
               <td style="background-color: #1a1a1a; padding: 20px; text-align: center;">
-                <p style="color: #ffffff; font-size: 12px; margin: 0;">© 2024 Nawab & Co. All rights reserved.</p>
+                <p style="color: #ffffff; font-size: 12px; margin: 0;">© 2024 nawab & Co. All rights reserved.</p>
               </td>
             </tr>
           </table>
@@ -141,18 +141,18 @@ export async function POST(req: Request) {
         </html>
       `;
 
-      // Send user confirmation with "Nawab & Co." as sender name
+      // Send user confirmation with "nawab & Co." as sender name
       await transporter.sendMail({
-        from: '"Nawab & Co." <' + process.env.EMAIL_SERVER_USER + ">",
+        from: '"nawab & Co." <' + process.env.EMAIL_SERVER_USER + ">",
         to: email,
-        subject: "Welcome to Nawab & Co.'s Exclusive Waitlist",
+        subject: "Welcome to nawab & Co.'s Exclusive Waitlist",
         html: emailTemplate,
       });
 
       // Send admin notification if configured
       if (process.env.ADMIN_EMAIL) {
         await transporter.sendMail({
-          from: '"Nawab & Co. System" <' + process.env.EMAIL_SERVER_USER + ">",
+          from: '"nawab & Co. System" <' + process.env.EMAIL_SERVER_USER + ">",
           to: process.env.ADMIN_EMAIL,
           subject: "New Waitlist Entry",
           html: `
