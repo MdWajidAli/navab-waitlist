@@ -18,7 +18,7 @@ async function connectToDatabase() {
   try {
     const client = new MongoClient(process.env.MONGODB_URI);
     await client.connect();
-    await client.db("admin").command({ ping: 1 }); // Test the connection
+    await client.db("admin").command({ ping: 1 });
     console.log("MongoDB connection established");
     cachedClient = client;
     return client;
@@ -30,7 +30,6 @@ async function connectToDatabase() {
 
 // Create transporter with more detailed configuration
 const createTransporter = async () => {
-  // Validate email configuration
   if (
     !process.env.EMAIL_SERVER_HOST ||
     !process.env.EMAIL_SERVER_PORT ||
@@ -43,16 +42,13 @@ const createTransporter = async () => {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_SERVER_HOST,
     port: Number.parseInt(process.env.EMAIL_SERVER_PORT),
-    secure: process.env.EMAIL_SERVER_PORT === "465", // true for 465, false for other ports
+    secure: process.env.EMAIL_SERVER_PORT === "465",
     auth: {
       user: process.env.EMAIL_SERVER_USER,
       pass: process.env.EMAIL_SERVER_PASSWORD,
     },
-    debug: true, // Enable debug logs
-    logger: true, // Enable logger
   });
 
-  // Verify connection configuration
   try {
     await transporter.verify();
     console.log("SMTP connection verified successfully");
@@ -107,30 +103,70 @@ export async function POST(req: Request) {
     try {
       const transporter = await createTransporter();
 
-      // Simplified email template for testing
+      // Enhanced email template
       const emailTemplate = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h1>Welcome to Nawab & Co.!</h1>
-          <p>Thank you for joining our waitlist, ${email}!</p>
-          <p>We'll keep you updated on our launch.</p>
-        </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f5f5dc;">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <tr>
+              <td style="padding: 40px 0; text-align: center; background-color: #1a1a1a;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Nawab & Co.</h1>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 40px 30px;">
+                <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">Dear Fashion Enthusiast,</p>
+                <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">Thank you for joining our exclusive waitlist! We're thrilled to have you as part of our growing community of fashion-forward individuals.</p>
+                <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">As a valued member of our waitlist, you'll enjoy:</p>
+                <ul style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 20px; padding-left: 20px;">
+                  <li style="margin-bottom: 10px;">Early access to our exclusive collection launches</li>
+                  <li style="margin-bottom: 10px;">Special pre-launch discounts</li>
+                  <li style="margin-bottom: 10px;">Behind-the-scenes updates</li>
+                  <li style="margin-bottom: 10px;">First pick of limited edition pieces</li>
+                </ul>
+                <p style="color: #333333; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">Stay tuned for exciting updates and exclusive offers coming your way!</p>
+                <div style="text-align: center; margin-top: 40px;">
+                  <p style="color: #666666; font-size: 14px; margin: 0;">With style,</p>
+                  <p style="color: #333333; font-size: 18px; font-weight: bold; margin: 5px 0;">The Nawab & Co. Team</p>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color: #1a1a1a; padding: 20px; text-align: center;">
+                <p style="color: #ffffff; font-size: 12px; margin: 0;">© 2024 Nawab & Co. All rights reserved.</p>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `;
 
-      // Send user confirmation
+      // Send user confirmation with "Nawab & Co." as sender name
       await transporter.sendMail({
-        from: process.env.FROM_EMAIL || process.env.EMAIL_SERVER_USER,
+        from: '"Nawab & Co." <' + process.env.EMAIL_SERVER_USER + ">",
         to: email,
-        subject: "Welcome to Our Waitlist!",
+        subject: "Welcome to Nawab & Co.'s Exclusive Waitlist",
         html: emailTemplate,
       });
 
       // Send admin notification if configured
       if (process.env.ADMIN_EMAIL) {
         await transporter.sendMail({
-          from: process.env.FROM_EMAIL || process.env.EMAIL_SERVER_USER,
+          from: '"Nawab & Co. System" <' + process.env.EMAIL_SERVER_USER + ">",
           to: process.env.ADMIN_EMAIL,
           subject: "New Waitlist Entry",
-          html: `<p>New signup: ${email}</p>`,
+          html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2>New Waitlist Signup</h2>
+              <p><strong>Email:</strong> ${email}</p>
+              <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+            </div>
+          `,
         });
       }
 
@@ -145,7 +181,6 @@ export async function POST(req: Request) {
         response: emailError.response,
       });
 
-      // Still return success since we saved to database
       return NextResponse.json(
         {
           message: "Successfully joined! Email confirmation may be delayed.",
