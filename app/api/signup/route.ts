@@ -9,13 +9,12 @@ if (!uri) {
 
 // Create a MongoClient with connection pooling
 const client = new MongoClient(uri, {
-  maxPoolSize: 10, // Maintain up to 10 socket connections
-  minPoolSize: 1, // Keep at least one connection alive
+  maxPoolSize: 10,
+  minPoolSize: 1,
   serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  socketTimeoutMS: 45000,
 });
 
-// Initialize connection once for better connection pooling
 let clientPromise: Promise<MongoClient>;
 try {
   clientPromise = client.connect();
@@ -24,33 +23,43 @@ try {
   throw e;
 }
 
-// Create reusable transporter object using Gmail SMTP
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_SERVER_HOST,
-  port: Number(process.env.EMAIL_SERVER_PORT),
-  secure: true, // use TLS
-  auth: {
-    user: process.env.EMAIL_SERVER_USER,
-    pass: process.env.EMAIL_SERVER_PASSWORD,
-  },
-  tls: {
-    // Do not fail on invalid certificates
-    rejectUnauthorized: false,
-  },
-});
-
-// Verify transporter configuration
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("Email transporter verification failed:", error);
-  } else {
-    console.log("Email server is ready to send messages");
+// Create transporter with more detailed configuration
+const createTransporter = async () => {
+  // Validate email configuration
+  if (
+    !process.env.EMAIL_SERVER_HOST ||
+    !process.env.EMAIL_SERVER_PORT ||
+    !process.env.EMAIL_SERVER_USER ||
+    !process.env.EMAIL_SERVER_PASSWORD
+  ) {
+    throw new Error("Email configuration is incomplete");
   }
-});
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_SERVER_HOST,
+    port: Number.parseInt(process.env.EMAIL_SERVER_PORT),
+    secure: process.env.EMAIL_SERVER_PORT === "465", // true for 465, false for other ports
+    auth: {
+      user: process.env.EMAIL_SERVER_USER,
+      pass: process.env.EMAIL_SERVER_PASSWORD,
+    },
+    debug: true, // Enable debug logs
+    logger: true, // Enable logger
+  });
+
+  // Verify connection configuration
+  try {
+    await transporter.verify();
+    console.log("SMTP connection verified successfully");
+    return transporter;
+  } catch (error) {
+    console.error("SMTP connection verification failed:", error);
+    throw error;
+  }
+};
 
 export async function POST(req: Request) {
   try {
-    // Parse request body first
     const body = await req.json();
     const { email } = body;
 
@@ -69,108 +78,52 @@ export async function POST(req: Request) {
       );
     }
 
-    // Get connected client
-    const connectedClient = await clientPromise;
-    const database = connectedClient.db("wishlist");
-    const collection = database.collection("emails");
-
-    // Insert email into database
-    await collection.insertOne({
-      email,
-      submissionDate: new Date(),
-    });
-
-    // Send emails with better error handling
+    // Database operations
     try {
-      // Verify email configuration
-      if (
-        !process.env.EMAIL_SERVER_USER ||
-        !process.env.EMAIL_SERVER_PASSWORD ||
-        !process.env.EMAIL_SERVER_HOST ||
-        !process.env.EMAIL_SERVER_PORT
-      ) {
-        console.error("Email configuration incomplete");
-        throw new Error("Email server configuration is incomplete");
-      }
+      const connectedClient = await clientPromise;
+      const database = connectedClient.db("wishlist");
+      const collection = database.collection("emails");
 
-      // User confirmation email
+      await collection.insertOne({
+        email,
+        submissionDate: new Date(),
+      });
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      return NextResponse.json(
+        { message: "Failed to save to database" },
+        { status: 500 }
+      );
+    }
+
+    // Email sending
+    try {
+      const transporter = await createTransporter();
+
+      // Simplified email template for testing
+      const emailTemplate = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1>Welcome to Nawab & Co.!</h1>
+          <p>Thank you for joining our waitlist, ${email}!</p>
+          <p>We'll keep you updated on our launch.</p>
+        </div>
+      `;
+
+      // Send user confirmation
       await transporter.sendMail({
-        from:
-          process.env.FROM_EMAIL ||
-          `"Nawab & Co." <${process.env.EMAIL_SERVER_USER}>`,
+        from: process.env.FROM_EMAIL || process.env.EMAIL_SERVER_USER,
         to: email,
-        subject: "Welcome to Our Exclusive Waitlist!",
-        html: `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to Nawab & Co. Waitlist</title>
-      </head>
-      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5dc;">
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-          <tr>
-            <td align="center" style="padding: 40px 0; background-image: url('https://images.unsplash.com/photo-1558769132-cb1aea458c5e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80'); background-size: cover; background-position: center;">
-              <h1 style="color: #ffffff; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Welcome to Nawab & Co.!</h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding: 20px;">
-              <p>Dear ${email},</p>
-              <p>Thank you for joining our exclusive waitlist. We're thrilled to have you on board!</p>
-              <p>As a valued member of our waitlist, you'll be among the first to:</p>
-              <ul>
-                <li>Experience our revolutionary clothing designs</li>
-                <li>Receive exclusive early access to our collections</li>
-                <li>Enjoy special offers and discounts</li>
-              </ul>
-              <p>We'll keep you updated on our launch and share exciting news with you soon.</p>
-              <p>Best regards,<br>The Nawab & Co. Team</p>
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding: 20px; background-color: #f5f5dc;">
-              <p style="font-size: 12px; color: #666;">© 2023 Nawab & Co. All rights reserved.</p>
-            </td>
-          </tr>
-        </table>
-      </body>
-      </html>
-    `,
+        subject: "Welcome to Our Waitlist!",
+        html: emailTemplate,
       });
 
-      // Admin notification
+      // Send admin notification if configured
       if (process.env.ADMIN_EMAIL) {
         await transporter.sendMail({
-          from: `"Nawab & Co. System" <${process.env.EMAIL_SERVER_USER}>`,
+          from: process.env.FROM_EMAIL || process.env.EMAIL_SERVER_USER,
           to: process.env.ADMIN_EMAIL,
           subject: "New Waitlist Entry",
-          html: `
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>New Waitlist Entry</title>
-        </head>
-        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5dc;">
-          <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-            <tr>
-              <td align="center" style="padding: 20px; background-color: #333333; color: #ffffff;">
-                <h2>New Waitlist Entry</h2>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 20px;">
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-              </td>
-            </tr>
-          </table>
-        </body>
-        </html>
-      `,
+          html: `<p>New signup: ${email}</p>`,
         });
       }
 
@@ -179,12 +132,23 @@ export async function POST(req: Request) {
         { status: 200 }
       );
     } catch (emailError: any) {
-      console.error("Email sending error:", emailError);
-      // Log detailed error information
-      if (emailError.response) {
-        console.error("SMTP Response:", emailError.response);
-      }
-      throw new Error("Failed to send confirmation email");
+      console.error("Email error details:", {
+        error: emailError,
+        stack: emailError.stack,
+        response: emailError.response,
+      });
+
+      // Still return success since we saved to database
+      return NextResponse.json(
+        {
+          message: "Successfully joined! Email confirmation may be delayed.",
+          debug:
+            process.env.NODE_ENV === "development"
+              ? emailError.message
+              : undefined,
+        },
+        { status: 200 }
+      );
     }
   } catch (error) {
     console.error("Server error:", error);
@@ -193,5 +157,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-  // Note: We don't close the client connection anymore as we're using connection pooling
 }
