@@ -26,11 +26,26 @@ try {
 
 // Create reusable transporter object using Gmail SMTP
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.EMAIL_SERVER_HOST,
+  port: Number(process.env.EMAIL_SERVER_PORT),
+  secure: true, // use TLS
   auth: {
     user: process.env.EMAIL_SERVER_USER,
     pass: process.env.EMAIL_SERVER_PASSWORD,
   },
+  tls: {
+    // Do not fail on invalid certificates
+    rejectUnauthorized: false,
+  },
+});
+
+// Verify transporter configuration
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("Email transporter verification failed:", error);
+  } else {
+    console.log("Email server is ready to send messages");
+  }
 });
 
 export async function POST(req: Request) {
@@ -54,15 +69,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify email configuration
-    if (!process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD) {
-      console.error("Email configuration missing");
-      return NextResponse.json(
-        { message: "Server configuration error" },
-        { status: 500 }
-      );
-    }
-
     // Get connected client
     const connectedClient = await clientPromise;
     const database = connectedClient.db("wishlist");
@@ -76,9 +82,22 @@ export async function POST(req: Request) {
 
     // Send emails with better error handling
     try {
+      // Verify email configuration
+      if (
+        !process.env.EMAIL_SERVER_USER ||
+        !process.env.EMAIL_SERVER_PASSWORD ||
+        !process.env.EMAIL_SERVER_HOST ||
+        !process.env.EMAIL_SERVER_PORT
+      ) {
+        console.error("Email configuration incomplete");
+        throw new Error("Email server configuration is incomplete");
+      }
+
       // User confirmation email
       await transporter.sendMail({
-        from: `"Nawab & Co." <${process.env.EMAIL_SERVER_USER}>`,
+        from:
+          process.env.FROM_EMAIL ||
+          `"Nawab & Co." <${process.env.EMAIL_SERVER_USER}>`,
         to: email,
         subject: "Welcome to Our Exclusive Waitlist!",
         html: `
@@ -160,12 +179,12 @@ export async function POST(req: Request) {
         { status: 200 }
       );
     } catch (emailError: any) {
-      console.error("Email sending error:", emailError?.response || emailError);
-      // Still return success if email fails, but log the error
-      return NextResponse.json(
-        { message: "Successfully joined! Email confirmation may be delayed." },
-        { status: 200 }
-      );
+      console.error("Email sending error:", emailError);
+      // Log detailed error information
+      if (emailError.response) {
+        console.error("SMTP Response:", emailError.response);
+      }
+      throw new Error("Failed to send confirmation email");
     }
   } catch (error) {
     console.error("Server error:", error);
