@@ -79,21 +79,11 @@ export async function POST(req: Request) {
       );
     }
 
-    // Connect to MongoDB
+    // Connect to MongoDB and save email (allowing duplicates)
     const client = await connectToDatabase();
     const database = client.db("wishlist");
     const collection = database.collection("emails");
 
-    // Check if email already exists
-    const existingEmail = await collection.findOne({ email });
-    if (existingEmail) {
-      return NextResponse.json(
-        { message: "This email is already registered" },
-        { status: 400 }
-      );
-    }
-
-    // Insert new email
     await collection.insertOne({
       email,
       submissionDate: new Date(),
@@ -103,7 +93,7 @@ export async function POST(req: Request) {
     try {
       const transporter = await createTransporter();
 
-      // Enhanced email template
+      // Enhanced email template with background image
       const emailTemplate = `
         <!DOCTYPE html>
         <html>
@@ -114,8 +104,13 @@ export async function POST(req: Request) {
         <body style="margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #f5f5dc;">
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
             <tr>
-              <td style="padding: 40px 0; text-align: center; background-color: #1a1a1a;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Welcome to Nawab & Co.</h1>
+              <td style="padding: 0;">
+                <!-- Hero Image Section -->
+                <div style="background-image: url('https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?q=80&w=2940&auto=format&fit=crop'); background-size: cover; background-position: center; height: 200px; position: relative;">
+                  <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;">
+                    <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold; text-align: center; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Welcome to Nawab & Co.</h1>
+                  </div>
+                </div>
               </td>
             </tr>
             <tr>
