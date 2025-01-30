@@ -75,11 +75,11 @@ export function WishlistForm() {
             className="text-center mb-8"
           >
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-              Elevate Your Wardrobe
+              Indulge in Sophistication
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-              Join the waitlist for our exclusive clothing line and be the first
-              to experience revolutionary designs
+              Secure your exclusive access to experience our collection before
+              the world.
             </p>
           </motion.div>
 
@@ -87,16 +87,16 @@ export function WishlistForm() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-5xl mb-8">
             {[
               {
-                src: "/placeholder.svg?height=400&width=300",
-                alt: "Elegant suit",
+                src: "/img1.jpg?height=400&width=300",
+                alt: "Premium Fabric",
               },
               {
-                src: "/placeholder.svg?height=400&width=300",
-                alt: "Stylish dress",
+                src: "/img2.jpg?height=400&width=300",
+                alt: "Effortless Style",
               },
               {
-                src: "/placeholder.svg?height=400&width=300",
-                alt: "Casual outfit",
+                src: "/img3.jpg?height=400&width=300",
+                alt: "TImeless Casual",
               },
             ].map((img, index) => (
               <motion.div
@@ -147,7 +147,8 @@ export function WishlistForm() {
                 </Button>
               </div>
               <p className="text-sm text-gray-600 text-center mt-2">
-                Be the first to experience our revolutionary designs
+                By joining, you'll be the first to receive exclusive insight
+                into our highly anticipated launch.
               </p>
             </form>
           </div>
