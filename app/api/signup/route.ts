@@ -2,25 +2,30 @@ import { NextResponse } from "next/server";
 import { MongoClient } from "mongodb";
 import nodemailer from "nodemailer";
 
-const uri = process.env.MONGODB_URI;
-if (!uri) {
-  throw new Error("MONGODB_URI is not set");
-}
+// Create a cached connection variable
+let cachedClient: MongoClient | null = null;
 
-// Create a MongoClient with connection pooling
-const client = new MongoClient(uri, {
-  maxPoolSize: 10,
-  minPoolSize: 1,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-});
+// Function to connect to MongoDB
+async function connectToDatabase() {
+  if (cachedClient) {
+    return cachedClient;
+  }
 
-let clientPromise: Promise<MongoClient>;
-try {
-  clientPromise = client.connect();
-} catch (e) {
-  console.error("Failed to initialize database connection:", e);
-  throw e;
+  if (!process.env.MONGODB_URI) {
+    throw new Error("Please define the MONGODB_URI environment variable");
+  }
+
+  try {
+    const client = new MongoClient(process.env.MONGODB_URI);
+    await client.connect();
+    await client.db("admin").command({ ping: 1 }); // Test the connection
+    console.log("MongoDB connection established");
+    cachedClient = client;
+    return client;
+  } catch (error) {
+    console.error("MongoDB connection error:", error);
+    throw new Error("Failed to connect to database");
+  }
 }
 
 // Create transporter with more detailed configuration
@@ -78,23 +83,25 @@ export async function POST(req: Request) {
       );
     }
 
-    // Database operations
-    try {
-      const connectedClient = await clientPromise;
-      const database = connectedClient.db("wishlist");
-      const collection = database.collection("emails");
+    // Connect to MongoDB
+    const client = await connectToDatabase();
+    const database = client.db("wishlist");
+    const collection = database.collection("emails");
 
-      await collection.insertOne({
-        email,
-        submissionDate: new Date(),
-      });
-    } catch (dbError) {
-      console.error("Database error:", dbError);
+    // Check if email already exists
+    const existingEmail = await collection.findOne({ email });
+    if (existingEmail) {
       return NextResponse.json(
-        { message: "Failed to save to database" },
-        { status: 500 }
+        { message: "This email is already registered" },
+        { status: 400 }
       );
     }
+
+    // Insert new email
+    await collection.insertOne({
+      email,
+      submissionDate: new Date(),
+    });
 
     // Email sending
     try {
@@ -153,7 +160,13 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error("Server error:", error);
     return NextResponse.json(
-      { message: "An error occurred while processing your request" },
+      {
+        message: "An error occurred while processing your request",
+        error:
+          process.env.NODE_ENV === "development"
+            ? (error as Error).message
+            : undefined,
+      },
       { status: 500 }
     );
   }
